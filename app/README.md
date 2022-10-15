@@ -1,6 +1,6 @@
 # App
 
-**TODO: Add description**
+**Checkout module for a shopping cart**
 
 ## Installation
 
@@ -21,4 +21,10 @@ be found at <https://hexdocs.pm/app>.
 
 ## Implementation notes
 
-The price discount rules should be mapped as a list of rules where each rule `has many` (a list of) items to which applies. Currently, the mapping is done as a product `has a` discount.
+### Price list file
+
+The default list of prices is stored in a JSON file under `./config/prices.json`. To change this price list, you can create a new JSON file and change the directory path in `runtimes.exs`. Note that there is no need for recompile since this file is loaded at runtime).
+
+### Price discount rules
+
+When the list of products gets bigger it is important to consider that the rules for price discount should be mapped as a list of rules, where each rule `has many` (a list of) items to which applies. Currently, the mapping is done as a product `has one` discount.

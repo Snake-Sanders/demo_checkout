@@ -142,12 +142,17 @@ defmodule App.Checkout do
 
   # load the product prices list
   def load_prices() do
-    # todo: load this list from a JSON file defined in configuration
-    %{
-      "VOUCHER" => %{name: "Voucher", price: 5.00},
-      "TSHIRT" => %{name: "T-Shirt", price: 20.00},
-      "MUG" => %{name: "Coffee Mug", price: 7.50}
-    }
+    if is_test_env() do
+      %{
+        "VOUCHER" => %{name: "Voucher", price: 5.00},
+        "TSHIRT" => %{name: "T-Shirt", price: 20.00},
+        "MUG" => %{name: "Coffee Mug", price: 7.50}
+      }
+    else
+      path = Application.get_env(:app, :prices_json_path)
+      {:ok, content} = File.read(path)
+      Poison.decode!(content)
+    end
   end
 
   defp puts_log(text) do
