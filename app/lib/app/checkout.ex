@@ -29,11 +29,11 @@ defmodule App.Checkout do
 
   @impl true
   def init(state) do
-    {:ok, state, {:continue, []}}
+    {:ok, state, {:continue, :load_prices}}
   end
 
   @impl true
-  def handle_continue(_opt, state) do
+  def handle_continue(:load_prices, state) do
     init_state = Map.put(state, :prices, load_prices())
     {:noreply, init_state}
   end
