@@ -19,3 +19,6 @@ Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_do
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
 be found at <https://hexdocs.pm/app>.
 
+## Implementation notes
+
+The price discount rules should be mapped as a list of rules where each rule `has many` (a list of) items to which applies. Currently, the mapping is done as a product `has a` discount.
