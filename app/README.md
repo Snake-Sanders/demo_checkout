@@ -25,6 +25,21 @@ be found at <https://hexdocs.pm/app>.
 
 The default list of prices is stored in a JSON file under `./config/prices.json`. To change this price list, you can create a new JSON file and change the directory path in `runtimes.exs`. Note that there is no need for recompile since this file is loaded at runtime).
 
+The JSON file is loaded after the `init` function, in `handle_continue`. It is recommended not to put slow tasks in the `init` function.
+
 ### Price discount rules
 
 When the list of products gets bigger it is important to consider that the rules for price discount should be mapped as a list of rules, where each rule `has many` (a list of) items to which applies. Currently, the mapping is done as a product `has one` discount.
+
+The default discount rules are:
+
+```elixir
+%{
+  "VOUCHER" => "2-for-1",
+  "TSHIRT" => "bulk-of-3"
+}
+```
+
+### GenServer
+
+https://elixir-lang.org/downloads/cheatsheets/gen-server.pdf
