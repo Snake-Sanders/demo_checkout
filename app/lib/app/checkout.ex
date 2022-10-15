@@ -27,14 +27,15 @@ defmodule App.Checkout do
 
   # Server interfaces
 
-  @doc """
-  When the json list gets bigger, then load it within the function
-  `handle_continue`.
-  """
   @impl true
   def init(state) do
+    {:ok, state, {:continue, []}}
+  end
+
+  @impl true
+  def handle_continue(_opt, state) do
     init_state = Map.put(state, :prices, load_prices())
-    {:ok, init_state}
+    {:noreply, init_state}
   end
 
   @impl true
