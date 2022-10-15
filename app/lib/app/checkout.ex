@@ -5,6 +5,8 @@ defmodule App.Checkout do
     defstruct prices: %{}, discounts: %{}, cart: %{}
   end
 
+  def is_test_env(), do: Mix.env() == :test
+
   # Client interfaces
 
   def new(pricing_rules \\ %{}) do
@@ -41,7 +43,7 @@ defmodule App.Checkout do
 
     case item do
       nil ->
-        IO.puts("The item '#{item_code}' is not a valid product")
+        puts_log("The item '#{item_code}' is not a valid product")
         {:noreply, state}
 
       _ ->
@@ -92,5 +94,11 @@ defmodule App.Checkout do
       "TSHIRT" => %{name: "T-Shirt", price: 20.00},
       "MUG" => %{name: "Coffee Mug", price: 7.50}
     }
+  end
+
+  defp puts_log(text) do
+    if not is_test_env() do
+      IO.puts(text)
+    end
   end
 end
