@@ -34,8 +34,16 @@ defmodule App.Checkout do
 
   @impl true
   def handle_continue(:load_prices, state) do
-    init_state = Map.put(state, :prices, load_prices())
-    {:noreply, init_state}
+    result = is_test_env() |> load_prices()
+
+    case result do
+      {:ok, prices} ->
+        init_state = Map.put(state, :prices, prices)
+        {:noreply, init_state}
+
+      {:error, reason} ->
+        {:stop, reason, state}
+    end
   end
 
   @impl true
@@ -85,10 +93,13 @@ defmodule App.Checkout do
     end
   end
 
+  # Calculates the total amount for the items in the cart.
+  # The discount has to be applied to the items in the cart
+  # before calling this function.
   # Assumes that all the items in the cart are valid items.
   def calc_price(cart, prices) do
     Enum.reduce(cart, 0.0, fn {code, quantity, disc_units, discount}, acc ->
-      price = prices[code].price
+      price = prices[code]["price"]
 
       case disc_units do
         0 ->
@@ -102,8 +113,9 @@ defmodule App.Checkout do
     end)
   end
 
-  # Appends to each item in the cart how many units have discount
-  # how much should be discounted for each.
+  # Appends to each item in the cart two more attributes:
+  # The number units that have discount.
+  # The precentage that should be discounted on such items price.
   #
   # Cart items are returned as:
   # `{item_code, item_quantity, quantity_with_discount, discount}`
@@ -141,21 +153,33 @@ defmodule App.Checkout do
     end
   end
 
-  # load the product prices list
-  def load_prices() do
-    if is_test_env() do
-      %{
-        "VOUCHER" => %{name: "Voucher", price: 5.00},
-        "TSHIRT" => %{name: "T-Shirt", price: 20.00},
-        "MUG" => %{name: "Coffee Mug", price: 7.50}
-      }
+  @doc """
+  Loads the list of prices
+  """
+  def load_prices(false = _is_test_env) do
+    with path <- Application.get_env(:app, :prices_json_path),
+         {:ok, content} <- File.read(path),
+         {:ok, prices} <- Poison.decode(content) do
+      {:ok, prices}
     else
-      path = Application.get_env(:app, :prices_json_path)
-      {:ok, content} = File.read(path)
-      Poison.decode!(content)
+      _ ->
+        {:error, "Failed reading the prices config file."}
     end
   end
 
+  # Generates a list of item prices for testing purposes.
+  def load_prices(true = _is_test_env) do
+    prices = %{
+      "VOUCHER" => %{"name" => "Voucher", "price" => 5.00},
+      "TSHIRT" => %{"name" => "T-Shirt", "price" => 20.00},
+      "MUG" => %{"name" => "Coffee Mug", "price" => 7.50}
+    }
+
+    {:ok, prices}
+  end
+
+  # Prints a log line to the terminal.
+  # The log is ignored in test environment.
   defp puts_log(text) do
     if not is_test_env() do
       IO.puts(text)
