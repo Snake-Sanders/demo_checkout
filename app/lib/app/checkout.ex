@@ -9,7 +9,45 @@ defmodule App.Checkout do
 
   # Client interfaces
 
-  def new(pricing_rules \\ %{}) do
+  @doc """
+  Starts a new Checkout module GenServer.
+  FIXME: rephrase
+  If no parameters are given, the function will load the default discount rules.
+  For disabling all discount rules, then an empty Map has to be passed as parameter.
+  For using a custom set of discount rules, this has to be passed as parameter.
+
+  ## Examples
+
+      iex> alias App.Checkout, as: Co
+      iex> {:ok, pid} = Co.new
+      iex> Co.scan(pid, "TSHIRT")
+      :ok
+      iex> Co.scan(pid, "TSHIRT")
+      :ok
+      iex> Co.scan(pid, "TSHIRT")
+      :ok
+      iex> Co.total(pid)
+      57.0
+
+  Passing a custom set of rules
+
+      iex> alias App.Checkout, as: Co
+      iex> discounts = %{ "MUG" => "2-for-1"}
+      iex> {:ok, pid} = Co.new(discounts)
+      iex> Co.scan(pid, "MUG")
+      :ok
+      iex> Co.scan(pid, "MUG")
+      :ok
+      iex> Co.total(pid)
+      7.50
+  """
+  def new() do
+    # uses default pricing rules
+    gen_price_rules()
+    |> start_link()
+  end
+
+  def new(pricing_rules) do
     start_link(pricing_rules)
   end
 
@@ -151,6 +189,16 @@ defmodule App.Checkout do
         # no enough units to apply a discount
         {0, 0}
     end
+  end
+
+  @doc """
+  Generates default price discount rules
+  """
+  def gen_price_rules() do
+    %{
+      "VOUCHER" => "2-for-1",
+      "TSHIRT" => "bulk-of-3"
+    }
   end
 
   @doc """

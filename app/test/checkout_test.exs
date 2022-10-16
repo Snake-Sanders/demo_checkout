@@ -1,31 +1,24 @@
 defmodule CheckoutTest do
   use ExUnit.Case
-  # doctest App
+  doctest App.Checkout
 
   alias App.Checkout
 
-  def get_price_rules() do
-    %{
-      "VOUCHER" => "2-for-1",
-      "TSHIRT" => "bulk-of-3"
-    }
-  end
-
   describe "without discount" do
     test "Create a checkout instance" do
-      {result, pid} = Checkout.new()
+      {result, pid} = Checkout.new(%{})
       assert result == :ok
       assert Checkout.total(pid) == 0.0
     end
 
     test "adding one item to the cart" do
-      {:ok, pid} = Checkout.new()
+      {:ok, pid} = Checkout.new(%{})
       Checkout.scan(pid, "VOUCHER")
       assert Checkout.total(pid) == 5.0
     end
 
     test "adding 3 units of one item to the cart" do
-      {:ok, pid} = Checkout.new()
+      {:ok, pid} = Checkout.new(%{})
       Checkout.scan(pid, "VOUCHER")
       Checkout.scan(pid, "VOUCHER")
       Checkout.scan(pid, "VOUCHER")
@@ -33,7 +26,7 @@ defmodule CheckoutTest do
     end
 
     test "invalid item is not added to the cart" do
-      {:ok, pid} = Checkout.new()
+      {:ok, pid} = Checkout.new(%{})
       Checkout.scan(pid, "TSHIRT")
       Checkout.scan(pid, "INVALID")
       Checkout.scan(pid, "VOUCHER")
@@ -41,9 +34,9 @@ defmodule CheckoutTest do
     end
   end
 
-  describe "with discount" do
+  describe "with default discounts" do
     test "select a discount for bulk-of-3" do
-      rules = get_price_rules()
+      rules = Checkout.gen_price_rules()
       assert Checkout.get_discount({"TSHIRT", 0}, rules) == {0, 0}
       assert Checkout.get_discount({"TSHIRT", 1}, rules) == {0, 0}
       assert Checkout.get_discount({"TSHIRT", 3}, rules) == {3, 5}
@@ -52,7 +45,7 @@ defmodule CheckoutTest do
     end
 
     test "select a discount for 2-of-1" do
-      rules = get_price_rules()
+      rules = Checkout.gen_price_rules()
       assert Checkout.get_discount({"VOUCHER", 0}, rules) == {0, 0}
       assert Checkout.get_discount({"VOUCHER", 1}, rules) == {0, 0}
       assert Checkout.get_discount({"VOUCHER", 2}, rules) == {1, 100}
@@ -62,7 +55,7 @@ defmodule CheckoutTest do
     end
 
     test "apply discount 2-for-1" do
-      rules = get_price_rules()
+      rules = Checkout.gen_price_rules()
       {:ok, pid} = Checkout.new(rules)
 
       Checkout.scan(pid, "VOUCHER")
@@ -79,7 +72,7 @@ defmodule CheckoutTest do
     end
 
     test "apply discount bulk-of-3" do
-      rules = get_price_rules()
+      rules = Checkout.gen_price_rules()
       {:ok, pid} = Checkout.new(rules)
 
       Checkout.scan(pid, "TSHIRT")
@@ -96,7 +89,7 @@ defmodule CheckoutTest do
     end
 
     test "discount for mixed items: Example 1" do
-      rules = get_price_rules()
+      rules = Checkout.gen_price_rules()
       {:ok, pid} = Checkout.new(rules)
 
       Checkout.scan(pid, "VOUCHER")
@@ -106,7 +99,7 @@ defmodule CheckoutTest do
     end
 
     test "discount for mixed items: Example 2" do
-      rules = get_price_rules()
+      rules = Checkout.gen_price_rules()
       {:ok, pid} = Checkout.new(rules)
 
       Checkout.scan(pid, "TSHIRT")
@@ -118,7 +111,7 @@ defmodule CheckoutTest do
     end
 
     test "discount for mixed items: Example 3" do
-      rules = get_price_rules()
+      rules = Checkout.gen_price_rules()
       {:ok, pid} = Checkout.new(rules)
 
       Checkout.scan(pid, "VOUCHER")
@@ -129,6 +122,17 @@ defmodule CheckoutTest do
       Checkout.scan(pid, "TSHIRT")
       Checkout.scan(pid, "TSHIRT")
       assert Checkout.total(pid) == 74.50
+    end
+  end
+
+  describe "with custom discounts" do
+    test "applying MUG discount" do
+      discounts = %{"MUG" => "2-for-1"}
+      {:ok, pid} = Checkout.new(discounts)
+
+      Checkout.scan(pid, "MUG")
+      Checkout.scan(pid, "MUG")
+      assert Checkout.total(pid) == 7.5
     end
   end
 end

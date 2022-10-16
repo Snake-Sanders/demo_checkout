@@ -19,6 +19,40 @@ Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_do
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
 be found at <https://hexdocs.pm/app>.
 
+## Configuration
+
+To change the product details or add new ones edit the file: `./config/prices.json`.
+
+## Example
+
+```Elixir
+iex> alias App.Checkout, as: Co
+iex> {:ok, pid} = Co.new
+iex> Co.scan(pid, "TSHIRT")
+:ok
+iex> Co.scan(pid, "TSHIRT")
+:ok
+iex> Co.scan(pid, "TSHIRT")
+:ok
+iex> Co.total(pid)         
+57.0
+```
+
+Alternatively, the discount rule can be passed as a parameter in the constructor.
+
+
+```Elixir
+iex> alias App.Checkout, as: Co
+iex> discounts = %{ "MUG" => "2-for-1"}
+iex> {:ok, pid} = Co.new(discounts)
+iex> Co.scan(pid, "MUG")
+:ok
+iex> Co.scan(pid, "MUG")
+:ok
+iex> Co.total(pid)         
+7.50
+```
+
 ## Implementation notes
 
 ### Price list file
