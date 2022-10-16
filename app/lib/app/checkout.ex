@@ -10,16 +10,22 @@ defmodule App.Checkout do
   # Client interfaces
 
   @doc """
-  Starts a new Checkout module GenServer.
-  FIXME: rephrase
-  If no parameters are given, the function will load the default discount rules.
-  For disabling all discount rules, then an empty Map has to be passed as parameter.
-  For using a custom set of discount rules, this has to be passed as parameter.
+  The `new` function starts a new Checkout module GenServer.
 
-  ## Examples
+  The Checkout module initialization loads the default price discount rule set
+  defined within this module.
+  Alternative a custom set of rules can be passed as argument to the `new`
+  function.
+  The product list is defined as a collection of items with the attributes:
+  code, description and price. This list is loaded from a JSON file located in
+  `./config/prices.json`.
+
+  If no parameters are given, the function will load the default discount rules.
+
+  ## Example: Using the default configuration
 
       iex> alias App.Checkout, as: Co
-      iex> {:ok, pid} = Co.new
+      iex> {:ok, pid} = Co.new()
       iex> Co.scan(pid, "TSHIRT")
       :ok
       iex> Co.scan(pid, "TSHIRT")
@@ -29,7 +35,11 @@ defmodule App.Checkout do
       iex> Co.total(pid)
       57.0
 
-  Passing a custom set of rules
+  For using a custom set of discount rules, the rules have to be passed as
+  parameter to the `new` function.
+  The rule set is a Map of product and discount type.
+
+  ## Example: Passing a custom set of rules
 
       iex> alias App.Checkout, as: Co
       iex> discounts = %{ "MUG" => "2-for-1"}
@@ -40,27 +50,42 @@ defmodule App.Checkout do
       :ok
       iex> Co.total(pid)
       7.50
+
+  For disabling all discount rules, then an empty Map has to be passed as parameter.
+
+      iex> {:ok, _pid} = App.Checkout.new(%{})
+
   """
   def new() do
     # uses default pricing rules
-    gen_price_rules()
+    %{discounts: gen_price_rules()}
     |> start_link()
   end
 
   def new(pricing_rules) do
-    start_link(pricing_rules)
+    %{discounts: pricing_rules}
+    |> start_link()
   end
 
+  @doc """
+  Adds an item to the shopping cart. If the item is already in the cart,
+  the quantity is increased.
+  """
   def scan(pid, item_id) do
     GenServer.cast(pid, {:add, item_id})
   end
 
+  @doc """
+  Returns the total price of the items in the cart taking in consideration the
+  discount rules.
+  """
   def total(pid) do
     GenServer.call(pid, :total)
   end
 
   def start_link(opt) do
-    GenServer.start_link(__MODULE__, %State{discounts: opt})
+    state = Map.merge(%State{}, opt)
+    GenServer.start_link(__MODULE__, state)
   end
 
   # Server interfaces
@@ -86,14 +111,13 @@ defmodule App.Checkout do
 
   @impl true
   def handle_cast({:add, item_code}, state) do
-    item = state.prices[item_code]
-
-    case item do
+    # searches the item code in the price list
+    case state.prices[item_code] do
       nil ->
         puts_log("The item '#{item_code}' is not a valid product")
         {:noreply, state}
 
-      _ ->
+      _item ->
         new_cart = add_item_to_cart(state.cart, item_code)
         {:noreply, %{state | cart: new_cart}}
     end
@@ -117,9 +141,11 @@ defmodule App.Checkout do
   def add_item_to_cart(cart, item_code) do
     case item_code in Map.keys(cart) do
       false ->
+        # adds the new item to the cart
         Map.put(cart, item_code, 1)
 
       true ->
+        # increments the units for the exisiting item
         {_quantity, new_cart} =
           Map.get_and_update!(
             cart,
@@ -136,27 +162,31 @@ defmodule App.Checkout do
   # before calling this function.
   # Assumes that all the items in the cart are valid items.
   def calc_price(cart, prices) do
-    Enum.reduce(cart, 0.0, fn {code, quantity, disc_units, discount}, acc ->
+    Enum.reduce(cart, 0.0, fn {code, quantity, units_with_discount, discount}, acc ->
       price = prices[code]["price"]
 
-      case disc_units do
+      case units_with_discount do
         0 ->
+          # this item has no discounts
           quantity * price + acc
 
         _ ->
-          no_discount_cost = (quantity - disc_units) * price
-          discount_cost = disc_units * price * (100 - discount) * 0.01
+          # calculates the price for units without discount
+          no_discount_cost = (quantity - units_with_discount) * price
+          # calculates the price for units with discount
+          discount_cost = units_with_discount * price * (100 - discount) * 0.01
+          # total cost for this item plus the accumulated
           no_discount_cost + discount_cost + acc
       end
     end)
   end
 
   # Appends to each item in the cart two more attributes:
-  # The number units that have discount.
-  # The precentage that should be discounted on such items price.
+  # 1. The number units that have discount.
+  # 2. The precentage that should be discounted from the full price.
   #
   # Cart items are returned as:
-  # `{item_code, item_quantity, quantity_with_discount, discount}`
+  # `{item_code, item_quantity, units_with_discount, discount_persentage}`
   def calc_discount(cart, discounts) do
     Enum.map(
       cart,
@@ -203,6 +233,9 @@ defmodule App.Checkout do
 
   @doc """
   Loads the list of prices
+  Accepts a boolean as argument.
+  With `true` the price list is autogenerated for testing purposes.
+  With `false` the price list is load from a JSON file.
   """
   def load_prices(false = _is_test_env) do
     with path <- Application.get_env(:app, :prices_json_path),
