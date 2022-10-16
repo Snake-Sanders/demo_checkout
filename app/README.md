@@ -47,6 +47,29 @@ The currently available discount rules are `"2-for-1"` and `"bulk-of-3"`.
 
 ## Implementation notes
 
+### External Interfaces
+
+The required interfaces are `new`, `scan` and `total`, however, there are other 
+interfaces exposed within the same module. These interfaces could be private but
+are needed to unit test coverage. 
+
+A better approach is to extract them to another file, but a directory 
+restructuration could be done a bit later when more requirements are defined and
+after this unit was reviewed.
+
+### Useful future interfaces
+
+It would be useful to expose a set of interfaces that allows the user to:
+
+ - Remove an item from the cart.
+ - Add multiple units for a single item.
+ - Clear items in the cart.
+ - Inspect the content of the cart.
+ - Display items with full price and items with discount price and percentage. 
+
+These interfaces are left out to avoid adding extra complexity and stick to 
+the time budget.
+
 ### Price list file
 
 **JSON files**
