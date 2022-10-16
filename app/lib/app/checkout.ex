@@ -89,6 +89,9 @@ defmodule App.Checkout do
     GenServer.call(pid, :total)
   end
 
+  @doc """
+  Initialization interface. See wrapper function `new`.
+  """
   def start_link(opt) do
     state = Map.merge(%State{}, opt)
     GenServer.start_link(__MODULE__, state)
@@ -96,11 +99,18 @@ defmodule App.Checkout do
 
   # Server interfaces
 
+  @doc """
+  GenServer initialization.
+  """
   @impl true
   def init(state) do
     {:ok, state, {:continue, :load_prices}}
   end
 
+  @doc """
+  Second statge of initialization. This function does the heavy lifting.
+  Here is where the files are loaded when needed.
+  """
   @impl true
   def handle_continue(:load_prices, state) do
     result = is_test_env() |> load_prices()
@@ -115,6 +125,13 @@ defmodule App.Checkout do
     end
   end
 
+  @doc """
+  Adds an item to the cart.
+
+  ## Parameter
+
+  - item_code: The item code to add to the cart.
+  """
   @impl true
   def handle_cast({:add, item_code}, state) do
     # searches the item code in the price list
@@ -130,7 +147,9 @@ defmodule App.Checkout do
   end
 
   @doc """
-  The discount is calculated first based on the quanity of a product.
+  Calculates the total price of the items in the cart.
+
+  First is calculated the discount based on the quanity of a product.
   Then the discount is applied when calculating product final price per unit.
   """
   @impl true
@@ -144,6 +163,22 @@ defmodule App.Checkout do
     {:reply, total, state}
   end
 
+  @doc """
+  Add items to the cart
+
+  Searches for item code with the cart and if the item exist then the quantity
+  for this item is increased by one.
+  If the item was not previously in the cart, one item is added.
+  The function returns the updated cart.
+
+  ## Parameters
+
+  - cart: Shopping cart with scanned items.
+  - item_code: The item code to add to the cart.
+
+  return:
+    new_cart
+  """
   def add_item_to_cart(cart, item_code) do
     case item_code in Map.keys(cart) do
       false ->
@@ -163,10 +198,27 @@ defmodule App.Checkout do
     end
   end
 
-  # Calculates the total amount for the items in the cart.
-  # The discount has to be applied to the items in the cart
-  # before calling this function.
-  # Assumes that all the items in the cart are valid items.
+  @doc """
+  Calculates the total price for the items in the cart.
+
+  For each item in the shopping cart calculates the prices for the units without
+  discount and the units with discount.
+  The total cost for the items in the cart is returned.
+
+  ## Assumtions:
+
+  The discount has to be applied to the items in the cart before calling this
+  function.
+  Assumes that all the items in the cart are valid items.
+
+  ## Parameters
+
+  - cart: Shopping cart with scanned items.
+  - prices: The product prices list.
+
+  return:
+    total_price
+  """
   def calc_price(cart, prices) do
     Enum.reduce(cart, 0.0, fn {code, quantity, units_with_discount, discount}, acc ->
       price = prices[code]["price"]
@@ -187,12 +239,32 @@ defmodule App.Checkout do
     end)
   end
 
-  # Appends to each item in the cart two more attributes:
-  # 1. The number units that have discount.
-  # 2. The precentage that should be discounted from the full price.
-  #
-  # Cart items are returned as:
-  # `{item_code, item_quantity, units_with_discount, discount_persentage}`
+  @doc """
+  Appends to each item the discounted units and the discounted percentage
+
+  All the items in the card are append with the information about the discount.
+  When no discount applies, these values are zero.
+  When the discount applies the values are the units with discount and the
+  percentage discounted from the full price.
+
+  Example:
+
+    {"MUG", 4, 2, 50}
+
+  - "MUG" is the item code.
+  - 4 is the scanned units for this item.
+  - 2 is the units with discount.
+  - 50 is the percentage of the price to discount (50%) to the 2 units above.
+
+  ## Parameters
+
+  - cart: Shopping cart with scanned items.
+  - discount: Map with discount rules.
+
+  return:
+    {item_code, item_quantity, units_with_discount, discount_persentage}
+
+  """
   def calc_discount(cart, discounts) do
     Enum.map(
       cart,
@@ -204,8 +276,21 @@ defmodule App.Checkout do
   end
 
   @doc """
+  Searches the item in the discount map and indicates how much discount applies.
+
+  The discount my apply to all units, some or none, depending if the item has
+  not discount assigned or there are not enough units to apply a discount.
+
   Since the units are added with the funtion `scan`, currently there is no need
   for guarding this function with: `when is_integer(quantity)`
+
+  ## Parameters
+
+  - item: A touple of item code and quantity.
+  - discount: Type of discount to apply. See `gen_price_rules`.
+
+  returns:
+    {units_with_discount, percentage_discount}
   """
   def get_discount({code, quantity} = _item, discounts) do
     case discounts[code] do
@@ -228,7 +313,7 @@ defmodule App.Checkout do
   end
 
   @doc """
-  Generates default price discount rules
+  Generates a Map with default price discount rules.
   """
   def gen_price_rules() do
     %{
@@ -239,9 +324,18 @@ defmodule App.Checkout do
 
   @doc """
   Loads the list of prices
+
   Accepts a boolean as argument.
-  With `true` the price list is autogenerated for testing purposes.
-  With `false` the price list is load from a JSON file.
+
+  ## Parameters
+
+  - is_test_env:
+    When `true`, the price list is generated with default values.
+    When `false`, the price list is load from a JSON file.
+
+  returns:
+    {:ok, prices}
+    {:errror, reason}
   """
   def load_prices(false = _is_test_env) do
     with path <- Application.get_env(:app, :prices_json_path),
