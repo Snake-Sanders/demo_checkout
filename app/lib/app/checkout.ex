@@ -46,10 +46,16 @@ defmodule App.Checkout do
       iex> {:ok, pid} = Co.new(discounts)
       iex> Co.scan(pid, "MUG")
       :ok
+      iex> Co.total(pid)
+      7.5
       iex> Co.scan(pid, "MUG")
       :ok
       iex> Co.total(pid)
-      7.50
+      7.5
+      iex> Co.scan(pid, "MUG")
+      :ok
+      iex> Co.total(pid)
+      15.0
 
   For disabling all discount rules, then an empty Map has to be passed as parameter.
 
