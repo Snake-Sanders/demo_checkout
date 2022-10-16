@@ -43,6 +43,8 @@ iex> Co.total(pid)
 7.50
 ```
 
+**Note**: The alias `Co` is no longer needed since this alias is already set automatically in `.iex.exs`.
+
 The currently available discount rules are `"2-for-1"` and `"bulk-of-3"`.
 
 ## Implementation notes
