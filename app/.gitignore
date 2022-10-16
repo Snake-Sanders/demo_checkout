@@ -24,3 +24,6 @@ app-*.tar
 
 # Temporary files, for example, from tests.
 /tmp/
+
+# Temp files
+**/.DS_Store
