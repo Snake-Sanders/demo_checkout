@@ -67,12 +67,14 @@ defmodule App.Checkout do
       iex> {:ok, _pid} = App.Checkout.new(%{})
 
   """
+  @spec new()::{:ok, pid()}
   def new() do
     # uses default pricing rules
     %{discounts: gen_price_rules()}
     |> start_link()
   end
 
+  @spec new(map())::{:ok, pid()}
   def new(pricing_rules) do
     %{discounts: pricing_rules}
     |> start_link()
@@ -84,7 +86,7 @@ defmodule App.Checkout do
   If the item is not defined in the price list the item is ignored and a log
   message is displayed.
   """
-  def scan(pid, item_id) do
+  def scan(pid, item_id) when is_pid(pid) and is_bitstring(item_id) do
     GenServer.cast(pid, {:add, item_id})
   end
 
@@ -92,6 +94,7 @@ defmodule App.Checkout do
   Returns the total price of the items in the cart taking in consideration the
   discount rules.
   """
+  @spec total(pid())::{float()}
   def total(pid) do
     GenServer.call(pid, :total)
   end
