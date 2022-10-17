@@ -67,14 +67,14 @@ defmodule App.Checkout do
       iex> {:ok, _pid} = App.Checkout.new(%{})
 
   """
-  @spec new()::{:ok, pid()}
+  @spec new() :: {:ok, pid()}
   def new() do
     # uses default pricing rules
     %{discounts: gen_price_rules()}
     |> start_link()
   end
 
-  @spec new(map())::{:ok, pid()}
+  @spec new(map()) :: {:ok, pid()}
   def new(pricing_rules) do
     %{discounts: pricing_rules}
     |> start_link()
@@ -94,7 +94,7 @@ defmodule App.Checkout do
   Returns the total price of the items in the cart taking in consideration the
   discount rules.
   """
-  @spec total(pid())::{float()}
+  @spec total(pid()) :: {float()}
   def total(pid) do
     GenServer.call(pid, :total)
   end
