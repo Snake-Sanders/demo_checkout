@@ -17,12 +17,14 @@ defmodule App.Checkout do
   Alternative a custom set of rules can be passed as argument to the `new`
   function.
   The product list is defined as a collection of items with the attributes:
-  code, description and price. This list is loaded from a JSON file located in
-  `./config/prices.json`.
+  `code`, `description` and `price`.
+  This list is loaded from a JSON file located in `./config/prices.json`.
 
   If no parameters are given, the function will load the default discount rules.
 
   ## Example: Using the default configuration
+
+  Each t-shirt cost 20€ but from 3 units a 5% discount is applied.
 
       iex> alias App.Checkout, as: Co
       iex> {:ok, pid} = Co.new()
@@ -41,6 +43,8 @@ defmodule App.Checkout do
 
   ## Example: Passing a custom set of rules
 
+  Each Mug cost 7.5€ but the second mug is for free.
+
       iex> alias App.Checkout, as: Co
       iex> discounts = %{ "MUG" => "2-for-1"}
       iex> {:ok, pid} = Co.new(discounts)
@@ -57,7 +61,8 @@ defmodule App.Checkout do
       iex> Co.total(pid)
       15.0
 
-  For disabling all discount rules, then an empty Map has to be passed as parameter.
+  For disabling all discount rules, then an empty Map has to be passed as
+  parameter.
 
       iex> {:ok, _pid} = App.Checkout.new(%{})
 
@@ -75,7 +80,9 @@ defmodule App.Checkout do
 
   @doc """
   Adds an item to the shopping cart. If the item is already in the cart,
-  the quantity is increased.
+  the item's quantity is increased.
+  If the item is not defined in the price list the item is ignored and a log
+  message is displayed.
   """
   def scan(pid, item_id) do
     GenServer.cast(pid, {:add, item_id})
@@ -109,7 +116,7 @@ defmodule App.Checkout do
 
   @doc """
   Second statge of initialization. This function does the heavy lifting.
-  Here is where the files are loaded when needed.
+  Here is where the files are loaded, if needed.
   """
   @impl true
   def handle_continue(:load_prices, state) do
@@ -154,7 +161,6 @@ defmodule App.Checkout do
   """
   @impl true
   def handle_call(:total, _form, state) do
-    # todo: pass the discount to the calc_price as param
     total =
       state.cart
       |> calc_discount(state.discounts)
@@ -164,11 +170,11 @@ defmodule App.Checkout do
   end
 
   @doc """
-  Add items to the cart
+  Add an item to the cart
 
-  Searches for item code with the cart and if the item exist then the quantity
-  for this item is increased by one.
-  If the item was not previously in the cart, one item is added.
+  Searches for the item code within the items in the cart and if the item exists
+  then the quantity for this item is increased by one.
+  If the item was not previously in the cart, this item is added.
   The function returns the updated cart.
 
   ## Parameters
@@ -252,8 +258,8 @@ defmodule App.Checkout do
     {"MUG", 4, 2, 50}
 
   - "MUG" is the item code.
-  - 4 is the scanned units for this item.
-  - 2 is the units with discount.
+  - 4 is the total amount of units for this item product.
+  - 2 is the units with discount (2 out of 4).
   - 50 is the percentage of the price to discount (50%) to the 2 units above.
 
   ## Parameters
@@ -262,7 +268,7 @@ defmodule App.Checkout do
   - discount: Map with discount rules.
 
   return:
-    {item_code, item_quantity, units_with_discount, discount_persentage}
+    {item_code, item_quantity, units_with_discount, discount_percentage}
 
   """
   def calc_discount(cart, discounts) do
@@ -278,7 +284,7 @@ defmodule App.Checkout do
   @doc """
   Searches the item in the discount map and indicates how much discount applies.
 
-  The discount my apply to all units, some or none, depending if the item has
+  The discount might apply to all units, some or none, depending if the item has
   not discount assigned or there are not enough units to apply a discount.
 
   Since the units are added with the funtion `scan`, currently there is no need
@@ -313,7 +319,7 @@ defmodule App.Checkout do
   end
 
   @doc """
-  Generates a Map with default price discount rules.
+  Generates a Map with default prices discount rules.
   """
   def gen_price_rules() do
     %{
@@ -338,13 +344,14 @@ defmodule App.Checkout do
     {:errror, reason}
   """
   def load_prices(false = _is_test_env) do
-    with path <- Application.get_env(:app, :prices_json_path),
-         {:ok, content} <- File.read(path),
+    path = Application.get_env(:app, :prices_json_path)
+
+    with {:ok, content} <- File.read(path),
          {:ok, prices} <- Poison.decode(content) do
       {:ok, prices}
     else
       _ ->
-        {:error, "Failed reading the prices config file."}
+        {:error, "Failed reading the prices list file: #{path}."}
     end
   end
 

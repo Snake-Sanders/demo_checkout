@@ -53,9 +53,9 @@ The currently available discount rules are `"2-for-1"` and `"bulk-of-3"`.
 
 The required interfaces are `new`, `scan` and `total`, however, there are other 
 interfaces exposed within the same module. These interfaces could be private but
-are needed to unit test coverage. 
+are needed for unit test coverage. 
 
-A better approach is to extract them to another file, but a directory 
+A better approach is to extract these functions to another file, but a directory 
 restructuration could be done a bit later when more requirements are defined and
 after this unit was reviewed.
 
@@ -64,43 +64,51 @@ after this unit was reviewed.
 It would be useful to expose a set of interfaces that allows the user to:
 
  - Remove an item from the cart.
- - Add multiple units for a single item.
- - Clear items in the cart.
+ - Clear all the items in the cart.
+ - Add multiple units for a single item at once.
  - Inspect the content of the cart.
  - Display items with full price and items with discount price and percentage. 
 
-These interfaces are left out to avoid adding extra complexity and stick to 
+These interfaces above are left out to avoid adding extra complexity and stick to 
 the time budget.
 
 ### Price list file
 
 **JSON files**
-The JSON file is loaded after the `init` function, in `handle_continue`. It is
-recommended not to put slow tasks in the `init` function.
 
-Although it would be much easier to handle the keys in the JSON price list with 
-atoms instead of strings, there is a limitation when using the function: 
-`Poison.Parser.parse!(content, %{keys: :atoms!})`, it is not recommended to 
+The JSON file is loaded after the `init` function, in `handle_continue`. This is done as part of the general recommendation to not put slow tasks in the `init` function.
+
+Although it would be much easier to handle the atom keys in the JSON price list instead of strings, there is a limitation when using the function: 
+
+`Poison.Parser.parse!(content, %{keys: :atoms!})`
+
+It is not recommended to 
 convert keys to atoms because atoms are not garbage collected and the list of 
-products can be big. The product `code` is always different.
+products can get big. The product `code` is always different.
 
 **Testing**
-The test unit uses a hardcoded price list defined within the Checkout module.
+
+The test unit uses a hardcoded price list defined within the `Checkout` module.
 A better approach is to use dependency injection, but for that, the 
 initialization interface has to be clearly defined.
+
+When executing the unit testing, it is common to avoid opening files to not slow down the running testing tasks. In this case, the price list is taken directly from the `Checkout` module, instead of reading the JSON file. 
+The good thing is that if the JSON file, for some reason, gets modified the tests still pass. However, there are some logic branches that the test unit cannot cover because they are forced by the test environment variable. A good balance can be achieved, but that will depend on how the module evolves.
 
 ### Price discount rules
 
 **Data relationship**
+
 When the list of products gets bigger it is important to consider that the rules
 for price discount should be mapped as a list of rules, where each rule 
 `has many` (a list of) items to which applies. Currently, the mapping is done as 
 a product `has one` discount.
 
 **Error Handling**
-If the rules passed to the initialization function contains invalid rules, these
-are ignored. It would be convenient to have a checker that notifies the user 
-about any error.
+
+If the rules passed to the initialization function contains invalid items, these
+are ignored. It would be convenient to have a checker that notifies the users 
+about any error they might have introduced.
 
 The default discount rules are:
 
@@ -112,5 +120,10 @@ The default discount rules are:
 ```
 
 ### GenServer
+
+Probably the event for adding items to the cart should be done with a sync 
+callback `handle_call`, rather than using `handle_cast`. As it is now implemented, 
+the user gets a log line in the console. However, the choice will be more 
+related to the error handler mechanism required by the consumer of the interface. 
 
 https://elixir-lang.org/downloads/cheatsheets/gen-server.pdf
