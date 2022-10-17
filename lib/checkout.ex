@@ -1,4 +1,4 @@
-defmodule App.Checkout do
+defmodule Checkout do
   use GenServer
 
   defmodule State do
@@ -26,7 +26,7 @@ defmodule App.Checkout do
 
   Each t-shirt cost 20€ but from 3 units a 5% discount is applied.
 
-      iex> alias App.Checkout, as: Co
+      iex> alias Checkout, as: Co
       iex> {:ok, pid} = Co.new()
       iex> Co.scan(pid, "TSHIRT")
       :ok
@@ -45,7 +45,7 @@ defmodule App.Checkout do
 
   Each Mug cost 7.5€ but the second mug is for free.
 
-      iex> alias App.Checkout, as: Co
+      iex> alias Checkout, as: Co
       iex> discounts = %{ "MUG" => "2-for-1"}
       iex> {:ok, pid} = Co.new(discounts)
       iex> Co.scan(pid, "MUG")
@@ -64,7 +64,7 @@ defmodule App.Checkout do
   For disabling all discount rules, then an empty Map has to be passed as
   parameter.
 
-      iex> {:ok, _pid} = App.Checkout.new(%{})
+      iex> {:ok, _pid} = Checkout.new(%{})
 
   """
   @spec new() :: {:ok, pid()}

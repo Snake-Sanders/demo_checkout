@@ -1,8 +1,8 @@
 defmodule CheckoutTest do
   use ExUnit.Case
-  doctest App.Checkout
+  doctest Checkout
 
-  alias App.Checkout
+  alias Checkout
 
   describe "without discount" do
     test "Create a checkout instance" do
