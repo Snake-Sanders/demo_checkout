@@ -2,14 +2,6 @@ defmodule DiscountsTest do
   use ExUnit.Case
   alias Checkout.Discounts
 
-  # defp get_prices() do
-  #   %{
-  #     "VOUCHER" => %{"name" => "Voucher", "price" => 5.00},
-  #     "TSHIRT" => %{"name" => "T-Shirt", "price" => 20.00},
-  #     "MUG" => %{"name" => "Coffee Mug", "price" => 7.50}
-  #   }
-  # end
-
   describe "Get discount x for y:" do
     test "2 for 1" do
       result = Discounts.get_discount_x_for_y({"VOUCHER", 1}, {2, 1})

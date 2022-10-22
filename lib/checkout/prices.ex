@@ -4,14 +4,6 @@ defmodule Checkout.Prices do
   @doc """
   Loads the list of prices
 
-  Accepts a boolean as argument.
-
-  ## Parameters
-
-  - is_test_env:
-    When `true`, the price list is generated with default values.
-    When `false`, the price list is load from a JSON file.
-
   returns:
     {:ok, prices}
     {:errror, reason}
