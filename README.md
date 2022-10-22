@@ -2,24 +2,6 @@
 
 **Checkout module for a demo shopping cart in Elixir**
 
-## Installation
-
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `app` to your list of dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [
-    {:app, "~> 0.1.0"}
-  ]
-end
-```
-
-Documentation can be generated with [ExDoc]
-(https://github.com/elixir-lang/ex_doc) and published on 
-[HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at <https://hexdocs.pm/app>.
-
 ## Configuration
 
 To modify the product price list, use the default list JSON file as a template 
@@ -118,12 +100,3 @@ The default discount rules are:
   "TSHIRT" => "bulk-of-3"
 }
 ```
-
-### GenServer
-
-Probably the event for adding items to the cart should be done with a sync 
-callback `handle_call`, rather than using `handle_cast`. As it is now implemented, 
-the user gets a log line in the console. However, the choice will be more 
-related to the error handler mechanism required by the consumer of the interface. 
-
-https://elixir-lang.org/downloads/cheatsheets/gen-server.pdf
