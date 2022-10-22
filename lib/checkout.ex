@@ -36,7 +36,7 @@ defmodule Checkout do
     iex> Checkout.new(pricing_rules)
     %Checkout{
         cart: %{},
-        discounts: %{"x-for" => {2,1}},
+        discounts: %{"x-for" => {2, 1}},
         prices: %{
           "MUG" => %{"name" => "Coffee Mug", "price" => 7.5},
           "TSHIRT" => %{"name" => "T-Shirt", "price" => 20.0},
@@ -108,7 +108,7 @@ defmodule Checkout do
 
     ## Example:
 
-    iex> pricing_rules = %{}
+    iex> pricing_rules = []
     iex> co = Checkout.new(pricing_rules)
     iex> co = Checkout.scan(co, "MUG")
     iex> Checkout.total(co)

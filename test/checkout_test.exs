@@ -1,9 +1,6 @@
 defmodule CheckoutTest do
   use ExUnit.Case
-  # TODO: enable docs
-  # doctest Checkout
-  # TODO: remove all the :skip
-  # alias Checkout.Cart
+  doctest Checkout
 
   defp get_prices() do
     %{
@@ -85,6 +82,7 @@ defmodule CheckoutTest do
 
     test "3-for-1" do
       rules = ["3-for-1"]
+
       co =
         checkout_create(rules)
         |> Checkout.scan("VOUCHER")
@@ -99,6 +97,7 @@ defmodule CheckoutTest do
 
     test "5-for-2" do
       rules = ["5-for-2"]
+
       co =
         checkout_create(rules)
         |> Checkout.scan("VOUCHER")
