@@ -1,6 +1,6 @@
 defmodule Checkout.Discounts do
   # discount in percentage (10%)
-  @bulk_discount 10
+  @bulk_discount 5
 
   @doc """
   Searches the item in the discount map and indicates how much discount applies.

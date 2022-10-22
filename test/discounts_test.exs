@@ -72,13 +72,13 @@ defmodule DiscountsTest do
       assert result == {2, 0, 0}
 
       result = Discounts.get_discount_bulk_of({"TSHIRT", 3}, 3)
-      assert result == {0, 3, 10}
+      assert result == {0, 3, 5}
 
       result = Discounts.get_discount_bulk_of({"TSHIRT", 4}, 3)
-      assert result == {0, 4, 10}
+      assert result == {0, 4, 5}
 
       result = Discounts.get_discount_bulk_of({"TSHIRT", 9}, 3)
-      assert result == {0, 9, 10}
+      assert result == {0, 9, 5}
     end
 
     test "bulk of 4" do
@@ -89,10 +89,10 @@ defmodule DiscountsTest do
       assert result == {3, 0, 0}
 
       result = Discounts.get_discount_bulk_of({"TSHIRT", 4}, 4)
-      assert result == {0, 4, 10}
+      assert result == {0, 4, 5}
 
       result = Discounts.get_discount_bulk_of({"TSHIRT", 9}, 4)
-      assert result == {0, 9, 10}
+      assert result == {0, 9, 5}
     end
   end
 
@@ -155,10 +155,10 @@ defmodule DiscountsTest do
       }
 
       result = Discounts.calculate_discount(%{"TSHIRT" => 3}, discounts)
-      assert result == %{"TSHIRT" => {0, 3, 10}}
+      assert result == %{"TSHIRT" => {0, 3, 5}}
 
       result = Discounts.calculate_discount(%{"TSHIRT" => 7}, discounts)
-      assert result == %{"TSHIRT" => {0, 7, 10}}
+      assert result == %{"TSHIRT" => {0, 7, 5}}
     end
   end
 end
