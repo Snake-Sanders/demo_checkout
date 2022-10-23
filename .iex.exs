@@ -1,1 +1,1 @@
-alias App.Checkout, as: Co
+alias Checkout, as: Co

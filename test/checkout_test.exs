@@ -1,138 +1,191 @@
 defmodule CheckoutTest do
   use ExUnit.Case
-  doctest App.Checkout
+  doctest Checkout
 
-  alias App.Checkout
+  defp get_prices() do
+    %{
+      "VOUCHER" => %{"name" => "Voucher", "price" => 5.00},
+      "TSHIRT" => %{"name" => "T-Shirt", "price" => 20.00},
+      "MUG" => %{"name" => "Coffee Mug", "price" => 7.50}
+    }
+  end
 
-  describe "without discount" do
-    test "Create a checkout instance" do
-      {result, pid} = Checkout.new(%{})
-      assert result == :ok
-      assert Checkout.total(pid) == 0.0
+  # mock setup
+  defp checkout_create(discounts) when is_list(discounts) do
+    {:ok, rules} = Checkout.Rules.sanitize_rules(discounts)
+
+    %Checkout{
+      cart: %{},
+      discounts: rules,
+      prices: get_prices()
+    }
+  end
+
+  describe "Checkout constructor" do
+    test "create a checkout instance" do
+      co = Checkout.new([])
+
+      refute is_nil(co.prices)
+      refute co.prices == %{}
+      assert co.cart == %{}
+      assert co.discounts == %{}
+      assert Checkout.total(co) == 0.0
     end
 
+    test "passing an invalid list of pricing rules" do
+      assert Checkout.new(["2-formal-2"]) == :error
+    end
+  end
+
+  describe "without discount:" do
     test "adding one item to the cart" do
-      {:ok, pid} = Checkout.new(%{})
-      Checkout.scan(pid, "VOUCHER")
-      assert Checkout.total(pid) == 5.0
+      co = checkout_create([])
+      co = Checkout.scan(co, "VOUCHER")
+
+      assert co.cart == %{"VOUCHER" => 1}
+      assert Checkout.total(co) == 5.0
     end
 
-    test "adding 3 units of one item to the cart" do
-      {:ok, pid} = Checkout.new(%{})
-      Checkout.scan(pid, "VOUCHER")
-      Checkout.scan(pid, "VOUCHER")
-      Checkout.scan(pid, "VOUCHER")
-      assert Checkout.total(pid) == 15.0
+    test "adding 3 units of one product to the cart" do
+      co =
+        checkout_create([])
+        |> Checkout.scan("VOUCHER")
+        |> Checkout.scan("VOUCHER")
+        |> Checkout.scan("VOUCHER")
+
+      assert Checkout.total(co) == 15.0
     end
 
     test "invalid item is not added to the cart" do
-      {:ok, pid} = Checkout.new(%{})
-      Checkout.scan(pid, "TSHIRT")
-      Checkout.scan(pid, "INVALID")
-      Checkout.scan(pid, "VOUCHER")
-      assert Checkout.total(pid) == 25.0
+      co =
+        checkout_create([])
+        |> Checkout.scan("TSHIRT")
+        |> Checkout.scan("INVALID")
+        |> Checkout.scan("VOUCHER")
+
+      assert Checkout.total(co) == 25.0
     end
   end
 
-  describe "with default discounts" do
-    test "select a discount for bulk-of-3" do
-      rules = Checkout.gen_price_rules()
-      assert Checkout.get_discount({"TSHIRT", 0}, rules) == {0, 0}
-      assert Checkout.get_discount({"TSHIRT", 1}, rules) == {0, 0}
-      assert Checkout.get_discount({"TSHIRT", 3}, rules) == {3, 5}
-      assert Checkout.get_discount({"TSHIRT", 4}, rules) == {4, 5}
-      assert Checkout.get_discount({"TSHIRT", 7}, rules) == {7, 5}
+  describe "Applying discounts:" do
+    test "2-for-1" do
+      rules = ["2-for-1", "bulk-3"]
+      co = checkout_create(rules)
+
+      co = Checkout.scan(co, "VOUCHER")
+      assert Checkout.total(co) == 5
+
+      co = Checkout.scan(co, "VOUCHER")
+      assert Checkout.total(co) == 5
+
+      co = Checkout.scan(co, "VOUCHER")
+      assert Checkout.total(co) == 10
+
+      co = Checkout.scan(co, "VOUCHER")
+      assert Checkout.total(co) == 10
     end
 
-    test "select a discount for 2-of-1" do
-      rules = Checkout.gen_price_rules()
-      assert Checkout.get_discount({"VOUCHER", 0}, rules) == {0, 0}
-      assert Checkout.get_discount({"VOUCHER", 1}, rules) == {0, 0}
-      assert Checkout.get_discount({"VOUCHER", 2}, rules) == {1, 100}
-      assert Checkout.get_discount({"VOUCHER", 3}, rules) == {1, 100}
-      assert Checkout.get_discount({"VOUCHER", 4}, rules) == {2, 100}
-      assert Checkout.get_discount({"VOUCHER", 7}, rules) == {3, 100}
+    test "3-for-1" do
+      rules = ["3-for-1"]
+
+      co =
+        checkout_create(rules)
+        |> Checkout.scan("VOUCHER")
+        |> Checkout.scan("VOUCHER")
+        |> Checkout.scan("VOUCHER")
+
+      assert Checkout.total(co) == 5
+
+      co = Checkout.scan(co, "VOUCHER")
+      assert Checkout.total(co) == 10
     end
 
-    test "apply discount 2-for-1" do
-      rules = Checkout.gen_price_rules()
-      {:ok, pid} = Checkout.new(rules)
+    test "5-for-2" do
+      rules = ["5-for-2"]
 
-      Checkout.scan(pid, "VOUCHER")
-      assert Checkout.total(pid) == 5
+      co =
+        checkout_create(rules)
+        |> Checkout.scan("VOUCHER")
+        |> Checkout.scan("VOUCHER")
+        |> Checkout.scan("VOUCHER")
+        |> Checkout.scan("VOUCHER")
+        |> Checkout.scan("VOUCHER")
 
-      Checkout.scan(pid, "VOUCHER")
-      assert Checkout.total(pid) == 5
+      assert Checkout.total(co) == 10
 
-      Checkout.scan(pid, "VOUCHER")
-      assert Checkout.total(pid) == 10
-
-      Checkout.scan(pid, "VOUCHER")
-      assert Checkout.total(pid) == 10
+      co = Checkout.scan(co, "VOUCHER")
+      assert Checkout.total(co) == 15
     end
 
-    test "apply discount bulk-of-3" do
-      rules = Checkout.gen_price_rules()
-      {:ok, pid} = Checkout.new(rules)
+    test "bulk-of-3" do
+      rules = ["2-for-1", "bulk-3"]
+      co = checkout_create(rules)
 
-      Checkout.scan(pid, "TSHIRT")
-      assert Checkout.total(pid) == 20
+      co = Checkout.scan(co, "TSHIRT")
+      assert Checkout.total(co) == 20
 
-      Checkout.scan(pid, "TSHIRT")
-      assert Checkout.total(pid) == 40
+      co = Checkout.scan(co, "TSHIRT")
+      assert Checkout.total(co) == 40
 
-      Checkout.scan(pid, "TSHIRT")
-      assert Checkout.total(pid) == 57
+      co = Checkout.scan(co, "TSHIRT")
+      assert Checkout.total(co) == 57
 
-      Checkout.scan(pid, "TSHIRT")
-      assert Checkout.total(pid) == 76
+      co = Checkout.scan(co, "TSHIRT")
+      assert Checkout.total(co) == 76
     end
 
     test "discount for mixed items: Example 1" do
-      rules = Checkout.gen_price_rules()
-      {:ok, pid} = Checkout.new(rules)
+      rules = ["2-for-1", "bulk-3"]
 
-      Checkout.scan(pid, "VOUCHER")
-      Checkout.scan(pid, "TSHIRT")
-      Checkout.scan(pid, "MUG")
-      assert Checkout.total(pid) == 32.50
+      co =
+        checkout_create(rules)
+        |> Checkout.scan("VOUCHER")
+        |> Checkout.scan("TSHIRT")
+        |> Checkout.scan("MUG")
+
+      assert Checkout.total(co) == 32.50
     end
 
     test "discount for mixed items: Example 2" do
-      rules = Checkout.gen_price_rules()
-      {:ok, pid} = Checkout.new(rules)
+      rules = ["2-for-1", "bulk-3"]
 
-      Checkout.scan(pid, "TSHIRT")
-      Checkout.scan(pid, "TSHIRT")
-      Checkout.scan(pid, "TSHIRT")
-      Checkout.scan(pid, "VOUCHER")
-      Checkout.scan(pid, "TSHIRT")
-      assert Checkout.total(pid) == 81.0
+      co =
+        checkout_create(rules)
+        |> Checkout.scan("VOUCHER")
+        |> Checkout.scan("TSHIRT")
+        |> Checkout.scan("VOUCHER")
+
+      assert Checkout.total(co) == 25.0
     end
 
     test "discount for mixed items: Example 3" do
-      rules = Checkout.gen_price_rules()
-      {:ok, pid} = Checkout.new(rules)
+      rules = ["2-for-1", "bulk-3"]
 
-      Checkout.scan(pid, "VOUCHER")
-      Checkout.scan(pid, "TSHIRT")
-      Checkout.scan(pid, "VOUCHER")
-      Checkout.scan(pid, "VOUCHER")
-      Checkout.scan(pid, "MUG")
-      Checkout.scan(pid, "TSHIRT")
-      Checkout.scan(pid, "TSHIRT")
-      assert Checkout.total(pid) == 74.50
+      co =
+        checkout_create(rules)
+        |> Checkout.scan("TSHIRT")
+        |> Checkout.scan("TSHIRT")
+        |> Checkout.scan("TSHIRT")
+        |> Checkout.scan("VOUCHER")
+        |> Checkout.scan("TSHIRT")
+
+      assert Checkout.total(co) == 81.0
     end
-  end
 
-  describe "with custom discounts" do
-    test "applying MUG discount" do
-      discounts = %{"MUG" => "2-for-1"}
-      {:ok, pid} = Checkout.new(discounts)
+    test "discount for mixed items: Example 4" do
+      rules = ["2-for-1", "bulk-3"]
 
-      Checkout.scan(pid, "MUG")
-      Checkout.scan(pid, "MUG")
-      assert Checkout.total(pid) == 7.5
+      co =
+        checkout_create(rules)
+        |> Checkout.scan("VOUCHER")
+        |> Checkout.scan("TSHIRT")
+        |> Checkout.scan("VOUCHER")
+        |> Checkout.scan("VOUCHER")
+        |> Checkout.scan("MUG")
+        |> Checkout.scan("TSHIRT")
+        |> Checkout.scan("TSHIRT")
+
+      assert Checkout.total(co) == 74.50
     end
   end
 end

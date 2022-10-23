@@ -27,3 +27,4 @@ app-*.tar
 
 # Temp files
 **/.DS_Store
+.vscode/launch.json
