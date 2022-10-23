@@ -14,32 +14,26 @@ The path of the custom price list file shall be set in the environment variable
 The discount rule set can be passed as a parameter to the constructor.
 
 ```Elixir
-iex> alias App.Checkout, as: Co
-iex> discounts = %{ "MUG" => "2-for-1"}
-iex> {:ok, pid} = Co.new(discounts)
-iex> Co.scan(pid, "MUG")
-:ok
-iex> Co.scan(pid, "MUG")
-:ok
-iex> Co.total(pid)         
-7.50
+iex> discounts = ["2-for-1"]
+iex> co = Checkout.new(discounts)
+iex> co = Checkout.scan(co, "VOUCHER")
+iex> co = Checkout.scan(co, "VOUCHER")
+iex> Checkout.total(co)         
+5.0
 ```
 
-**Note**: The alias `Co` is no longer needed since this alias is already set automatically in `.iex.exs`.
+The currently available discount rules are: 
 
-The currently available discount rules are `"2-for-1"` and `"bulk-of-3"`.
+- `"2-for-1"` 
+- `"3-for-1"` 
+- `"5-for-2"` 
+- `"bulk-of-3"`.
 
 ## Implementation notes
 
 ### External Interfaces
 
-The required interfaces are `new`, `scan` and `total`, however, there are other 
-interfaces exposed within the same module. These interfaces could be private but
-are needed for unit test coverage. 
-
-A better approach is to extract these functions to another file, but a directory 
-restructuration could be done a bit later when more requirements are defined and
-after this unit was reviewed.
+The required interfaces are `new`, `scan` and `total`, provided by the module `Checkout`.
 
 ### Useful future interfaces
 
@@ -51,8 +45,8 @@ It would be useful to expose a set of interfaces that allows the user to:
  - Inspect the content of the cart.
  - Display items with full price and items with discount price and percentage. 
 
-These interfaces above are left out to avoid adding extra complexity and stick to 
-the time budget.
+These interfaces above are left out to avoid adding extra complexity and stick 
+to the time budget.
 
 ### Price list file
 
@@ -64,39 +58,4 @@ Although it would be much easier to handle the atom keys in the JSON price list 
 
 `Poison.Parser.parse!(content, %{keys: :atoms!})`
 
-It is not recommended to 
-convert keys to atoms because atoms are not garbage collected and the list of 
-products can get big. The product `code` is always different.
-
-**Testing**
-
-The test unit uses a hardcoded price list defined within the `Checkout` module.
-A better approach is to use dependency injection, but for that, the 
-initialization interface has to be clearly defined.
-
-When executing the unit testing, it is common to avoid opening files to not slow down the running testing tasks. In this case, the price list is taken directly from the `Checkout` module, instead of reading the JSON file. 
-The good thing is that if the JSON file, for some reason, gets modified the tests still pass. However, there are some logic branches that the test unit cannot cover because they are forced by the test environment variable. A good balance can be achieved, but that will depend on how the module evolves.
-
-### Price discount rules
-
-**Data relationship**
-
-When the list of products gets bigger it is important to consider that the rules
-for price discount should be mapped as a list of rules, where each rule 
-`has many` (a list of) items to which applies. Currently, the mapping is done as 
-a product `has one` discount.
-
-**Error Handling**
-
-If the rules passed to the initialization function contains invalid items, these
-are ignored. It would be convenient to have a checker that notifies the users 
-about any error they might have introduced.
-
-The default discount rules are:
-
-```elixir
-%{
-  "VOUCHER" => "2-for-1",
-  "TSHIRT" => "bulk-of-3"
-}
-```
+It is not recommended to convert keys to atoms because atoms are not garbage collected and the list of products can get big. The product `code` is always different.
