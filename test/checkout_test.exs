@@ -21,8 +21,7 @@ defmodule CheckoutTest do
     }
   end
 
-  describe "without discount:" do
-    # @tag :skip
+  describe "Checkout constructor" do
     test "create a checkout instance" do
       co = Checkout.new([])
 
@@ -33,6 +32,12 @@ defmodule CheckoutTest do
       assert Checkout.total(co) == 0.0
     end
 
+    test "passing an invalid list of pricing rules" do
+      assert Checkout.new(["2-formal-2"]) == :error
+    end
+  end
+
+  describe "without discount:" do
     test "adding one item to the cart" do
       co = checkout_create([])
       co = Checkout.scan(co, "VOUCHER")
