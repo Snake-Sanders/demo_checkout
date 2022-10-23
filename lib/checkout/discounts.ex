@@ -1,21 +1,38 @@
 defmodule Checkout.Discounts do
-  # discount in percentage (10%)
+  # discount in percentage
   @bulk_discount 5
 
   @doc """
   Searches the item in the discount map and indicates how much discount applies.
 
-  The discount might apply to all units, some or none, depending if the item has
-  not discount assigned or there are not enough units to apply a discount.
+  The discount might apply to all units, some or none. That dependes on some
+  conditions. A discount applies if the item has a discount associated and the
+  there are enough items.
+
+  Only two items are applicable for discounts: `VOUCHER` and `TSHIRT`.
 
   ## Parameters
 
-  - item: A touple of item code and quantity.
-  - discount: Type of discount to apply. See `gen_price_rules`.
+  - item: A touple of item code and quantity of this item.
+  - discounts: The map of discounts.
 
   returns:
-    {units_with_discount, percentage_discount}
+
+    When the item has not discount, the funciton returns a touple with the
+    values:
+    `{quantity, 0, 0}`.
+    Quantity means all the items has full price, the following
+    two zeroes mean: no unit has discount, no discount percentage applies.
+
+    When the item has discount, the function returns a touple with the values:
+    `{full_price_units, discounted_units, percentage_discount}`.
+    `full_price_units` are the units without discount.
+    `discounted_units` are the units with discount
+    `percentage_discount` is the discount percentage to apply to the discounted
+    units. This is, 100, is 100% discount, the discounted unit prices is 0.
+    With 50, the discounted unit prices is the half.
   """
+  @spec get_discount(tuple(), map()) :: any()
   def get_discount({code, quantity} = item, discounts) do
     result =
       case code do
@@ -47,6 +64,15 @@ defmodule Checkout.Discounts do
     end
   end
 
+  @doc """
+  Checkes if the quantity of the item units are enough to apply the discount.
+
+  return:
+  returns a tuple with how many items have no discount, how many have discount
+  and how much is discounted in percentage.
+
+  `{full_price_units, discounted_units, discount}`
+  """
   def get_discount_x_for_y({_code, quantity} = _item, {buy_x, pay_y}) do
     groups = div(quantity, buy_x)
     # amount of units that this discount applies, group by pairs
@@ -60,21 +86,25 @@ defmodule Checkout.Discounts do
   end
 
   @doc """
-  return:
+  Checkes if the quantity of the item units are enough to apply the discount.
 
-  {full_price_units, discounted_units, discount }
+  return:
+  returns a tuple with how many items have no discount, how many have discount
+  and how much is discounted in percentage.
+
+  `{full_price_units, discounted_units, discount}`
   """
-  def get_discount_bulk_of({code, quantity} = _item, bulk_number) do
-    if quantity >= bulk_number and code == "TSHIRT" do
-      # no discount applies
+  def get_discount_bulk_of({_code, quantity} = _item, bulk_number) do
+    if quantity >= bulk_number do
       {0, quantity, @bulk_discount}
     else
+      # no discount applies
       {quantity, 0, 0}
     end
   end
 
   @doc """
-  Appends to each item the discounted units and the discounted percentage
+  Retrieves the discount that applies to each item in the cart.
 
   All the items in the card are append with the information about the discount.
   When no discount applies, these values are zero.
@@ -94,17 +124,14 @@ defmodule Checkout.Discounts do
   ## Parameters
 
   - cart: Shopping cart with scanned items.
-  - discount: Map with discount rules. The rules have to be converted by
+  - discounts: Map with discount rules. The rules have to be converted by
   `sanitize_rules` and have to have the format:
     %{"x-for" => {x, y}, "bulk-of" => x}
 
   return:
-    {item_code, item_quantity, units_with_discount, discount_percentage}
+    {item_code, full_price_units, discounted_units, discount_percentage}
 
   """
-
-  # def calculate_discount(%{}, _discounts), do: %{}
-
   @spec calculate_discount(map(), map()) :: map()
   def calculate_discount(cart, discounts) do
     Enum.reduce(cart, %{}, fn {code, _quantity} = item, acc ->
@@ -112,6 +139,4 @@ defmodule Checkout.Discounts do
       Map.put(acc, code, quantities)
     end)
   end
-
-  def get_bulk_discount_percentage(), do: @bulk_discount
 end
