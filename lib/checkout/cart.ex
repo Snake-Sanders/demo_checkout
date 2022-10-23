@@ -13,8 +13,9 @@ defmodule Checkout.Cart do
   - item_code: The item code to add to the cart.
 
   return:
-    new_cart
+    updated_cart
   """
+  @spec add_item(map(), String.t()) :: map()
   def add_item(%{} = cart, item_code) do
     if item_code in Map.keys(cart) do
       # increments the units for the exisiting item
@@ -35,9 +36,9 @@ defmodule Checkout.Cart do
 
   ## Assumtions:
 
-  The discount has to be applied to the items in the cart before calling this
-  function.
-  Assumes that all the items in the cart are valid items.
+  The cart must go through the discount function before calling this function.
+  See `Discounts.calculate_discount()`.
+  Assumes that, at this stage, all the items in the cart are valid items.
 
   ## Parameters
 
@@ -47,6 +48,7 @@ defmodule Checkout.Cart do
   return:
     total_price
   """
+  @spec calculate_price(map(), map()) :: float()
   def calculate_price(%{} = cart, prices) do
     Enum.reduce(cart, 0.0, fn {code, attributes}, acc ->
       {full_price_units, discounted_units, discount} = attributes
