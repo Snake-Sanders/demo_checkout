@@ -2,7 +2,7 @@ defmodule RulesTest do
   use ExUnit.Case
   alias Checkout.Rules
 
-  describe "Rule parsers." do
+  describe "Rule parsers:" do
     test "parse x-for-y rule" do
       assert Rules.parse_x_for_y("2-for-1") == {:ok, 2, 1}
       assert Rules.parse_x_for_y("3-for-1") == {:ok, 3, 1}
@@ -21,11 +21,11 @@ defmodule RulesTest do
       assert Rules.parse_bulk_of("3-bulk") == :error
     end
 
-    test "parse rule" do
-      assert Rules.parse_rule("2-for-1") == %{"x-for" => {2, 1}}
-      assert Rules.parse_rule("bulk-3") == %{"bulk-of" => 3}
-      assert Rules.parse_rule("no-bulk") == {:error, "Invalid rule: 'no-bulk'"}
-      assert Rules.parse_rule("no-for-") == {:error, "Invalid rule: 'no-for-'"}
+    test "parse_rule identify valid and invalid rules" do
+      assert Rules.parse_rule("2-for-1") == {:ok, %{"x-for" => {2, 1}}}
+      assert Rules.parse_rule("bulk-3") == {:ok, %{"bulk-of" => 3}}
+      assert Rules.parse_rule("no-bulk") == {:error, "invalid rule: 'no-bulk'"}
+      assert Rules.parse_rule("no-for-") == {:error, "invalid rule: 'no-for-'"}
     end
 
     test "validate input rule list has no more than 2 elements" do
@@ -54,24 +54,32 @@ defmodule RulesTest do
       assert duplicated_rules == {:error, "Invalid set of pricing rules"}
     end
 
-    test "validate converted rules" do
+    test "validate a converted empty rule set" do
       empty_rules =
-        [%{}]
+        [{:ok, %{}}]
         |> Rules.validate_converted_rules()
 
       assert empty_rules == {:ok, %{}}
+    end
 
+    test "validate a converted single rule" do
       one_rule =
-        [%{"x-for" => {3, 1}}]
+        [{:ok, %{"x-for" => {3, 1}}}]
         |> Rules.validate_converted_rules()
 
       assert one_rule == {:ok, %{"x-for" => {3, 1}}}
+    end
 
-      # invalid and valid rules
-      # mixed_rules =
-      #   [%{"x-for" => {3, 1}, :error => "invalid rules: 'bad rule'"}]
-      #   |> Rules.validate_converted_rules()
-      #   assert mixed_rules == {:error, %{"x-for" => {3, 1}}}
+    test "invalid and valid rules" do
+      mixed_rules =
+        [
+          {:ok, %{"x-for" => {3, 1}}},
+          {:error, "invalid rules: 'bad rule'"}
+        ]
+        |> Rules.validate_converted_rules()
+
+      assert mixed_rules ==
+               {:error, ["invalid rules: 'bad rule'"]}
     end
 
     test "sanitize pricing rules" do
@@ -96,6 +104,16 @@ defmodule RulesTest do
       # TODO: the user should be warned about overlapping rules
       rules = ["3-for-1", "2-for-1"]
       assert Rules.sanitize_rules(rules) == {:ok, %{"x-for" => {2, 1}}}
+    end
+
+    test "Sanitize_rules report invalid rules return :error " do
+      rules = ["3-by-1", "2-for-1"]
+      assert Rules.sanitize_rules(rules) == {:error, ["invalid rule: '3-by-1'"]}
+
+      rules = ["3-by-1", "buy-2-get-1"]
+
+      assert Rules.sanitize_rules(rules) ==
+               {:error, ["invalid rule: '3-by-1'", "invalid rule: 'buy-2-get-1'"]}
     end
   end
 end
