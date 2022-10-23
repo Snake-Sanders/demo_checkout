@@ -1,12 +1,10 @@
 defmodule Checkout.Prices do
-  # TODO: Rename unit to Product
-
   @doc """
   Loads the list of prices
 
   returns:
     {:ok, prices}
-    {:errror, reason}
+    {:error, reason}
   """
   def load_prices() do
     path = Application.get_env(:app, :prices_json_path)
